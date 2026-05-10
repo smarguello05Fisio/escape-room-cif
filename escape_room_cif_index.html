@@ -1,0 +1,982 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Escape Room CIF Clínico · Fundamentos de Fisioterapia y Razonamiento Clínico · PUCE</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --puce-blue: #1c3d6e;
+    --puce-light: #4a90c2;
+    --gold: #f5b700;
+    --silver: #c0c0c0;
+    --bronze: #cd7f32;
+    --bg: #f4f7fb;
+    --card-bg: #ffffff;
+    --success: #2ecc71;
+    --danger: #e74c3c;
+    --text: #1f2d3d;
+    --muted: #6c7a89;
+  }
+  body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(135deg, #1c3d6e 0%, #4a90c2 100%);
+    min-height: 100vh;
+    color: var(--text);
+    padding: 16px;
+  }
+  .container {
+    max-width: 1200px;
+    margin: 0 auto;
+    background: var(--bg);
+    border-radius: 16px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    overflow: hidden;
+  }
+  header {
+    background: var(--puce-blue);
+    color: white;
+    padding: 24px 32px;
+    border-bottom: 4px solid var(--gold);
+  }
+  header h1 { font-size: 1.6rem; margin-bottom: 4px; }
+  header .subtitle { font-size: 0.9rem; opacity: 0.85; }
+  .hud {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 32px;
+    background: white;
+    border-bottom: 1px solid #e0e6ed;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .hud-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.95rem;
+    font-weight: 600;
+  }
+  .hud-item .label { color: var(--muted); font-weight: 400; font-size: 0.85rem; }
+  .badge {
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: white;
+  }
+  .badge-bronze { background: var(--bronze); }
+  .badge-silver { background: #888; }
+  .badge-gold { background: var(--gold); color: #4a3500; }
+  main { padding: 24px 32px; }
+  .screen { display: none; animation: fadeIn 0.4s ease-out; }
+  .screen.active { display: block; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+  h2 { color: var(--puce-blue); margin-bottom: 16px; font-size: 1.4rem; }
+  h3 { color: var(--puce-blue); margin: 16px 0 8px; font-size: 1.1rem; }
+  p { line-height: 1.6; margin-bottom: 12px; }
+  .btn {
+    display: inline-block;
+    padding: 10px 22px;
+    background: var(--puce-blue);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin: 4px;
+  }
+  .btn:hover { background: var(--puce-light); transform: translateY(-1px); }
+  .btn-gold { background: var(--gold); color: #4a3500; }
+  .btn-gold:hover { background: #ffc933; }
+  .btn-secondary { background: #6c7a89; }
+  .case-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 16px;
+    margin: 16px 0;
+  }
+  .case-card {
+    background: var(--card-bg);
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    border-top: 4px solid var(--puce-blue);
+    cursor: pointer;
+    transition: all 0.25s;
+  }
+  .case-card:hover { transform: translateY(-4px); box-shadow: 0 8px 20px rgba(0,0,0,0.12); }
+  .case-card h3 { margin-top: 0; }
+  .case-card .meta { color: var(--muted); font-size: 0.85rem; margin-bottom: 8px; }
+  .case-card .diag { background: #fef3cd; padding: 8px 12px; border-radius: 6px; font-size: 0.9rem; margin-top: 8px; }
+  .level-selector {
+    display: flex;
+    gap: 12px;
+    margin: 20px 0;
+    flex-wrap: wrap;
+  }
+  .level-btn {
+    flex: 1;
+    min-width: 140px;
+    padding: 16px;
+    border: 2px solid transparent;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-align: center;
+    background: white;
+  }
+  .level-btn.bronze { border-color: var(--bronze); }
+  .level-btn.silver { border-color: var(--silver); }
+  .level-btn.gold { border-color: var(--gold); }
+  .level-btn:hover { transform: scale(1.03); }
+  .level-btn.selected { background: var(--puce-blue); color: white; }
+  .level-btn h4 { margin-bottom: 4px; }
+  .level-btn .desc { font-size: 0.8rem; opacity: 0.8; }
+
+  .game-board {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-top: 16px;
+  }
+  @media (max-width: 900px) { .game-board { grid-template-columns: 1fr; } }
+  .panel {
+    background: white;
+    border-radius: 10px;
+    padding: 16px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  }
+  .panel-title {
+    font-weight: 700;
+    color: var(--puce-blue);
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 2px solid #e0e6ed;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .clue-pool {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    min-height: 80px;
+    padding: 8px;
+    background: #f4f7fb;
+    border-radius: 8px;
+    border: 2px dashed #c5d0dc;
+  }
+  .clue {
+    background: white;
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 0.88rem;
+    cursor: grab;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+    border-left: 4px solid var(--puce-light);
+    transition: all 0.2s;
+    user-select: none;
+  }
+  .clue:active { cursor: grabbing; }
+  .clue.dragging { opacity: 0.4; }
+  .clue.placed { display: none; }
+
+  .zones {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+  .zone {
+    background: #fafbfd;
+    border: 2px dashed #b8c4d0;
+    border-radius: 8px;
+    padding: 10px;
+    min-height: 110px;
+    transition: all 0.2s;
+  }
+  .zone.drag-over { background: #e3f2fd; border-color: var(--puce-blue); border-style: solid; }
+  .zone-header {
+    font-weight: 700;
+    color: var(--puce-blue);
+    font-size: 0.82rem;
+    margin-bottom: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .zone-icon { margin-right: 4px; }
+  .zone-cards { display: flex; flex-direction: column; gap: 6px; }
+  .zone-card {
+    background: white;
+    padding: 6px 10px;
+    border-radius: 5px;
+    font-size: 0.82rem;
+    border-left: 3px solid var(--success);
+    animation: pop 0.3s ease-out;
+  }
+  .zone-card.wrong { border-left-color: var(--danger); animation: shake 0.4s; }
+  @keyframes pop { from { transform: scale(0.8); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+  @keyframes shake { 0%,100% { transform: translateX(0); } 25% { transform: translateX(-6px); } 75% { transform: translateX(6px); } }
+
+  .ai-tutor {
+    background: linear-gradient(135deg, #f5b700, #ffc933);
+    color: #4a3500;
+    padding: 14px 18px;
+    border-radius: 10px;
+    margin-top: 16px;
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+  }
+  .ai-tutor .ai-icon {
+    font-size: 1.6rem;
+    flex-shrink: 0;
+  }
+  .ai-tutor .ai-text { font-size: 0.92rem; line-height: 1.5; }
+  .ai-tutor strong { display: block; margin-bottom: 4px; }
+
+  .progress-bar {
+    height: 10px;
+    background: #e0e6ed;
+    border-radius: 5px;
+    overflow: hidden;
+    margin: 8px 0;
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--puce-blue), var(--gold));
+    transition: width 0.4s;
+    width: 0%;
+  }
+
+  .victory-screen {
+    text-align: center;
+    padding: 32px;
+  }
+  .victory-screen .trophy { font-size: 5rem; margin-bottom: 16px; }
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin: 20px 0;
+  }
+  .stat-box {
+    background: white;
+    padding: 16px;
+    border-radius: 10px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  }
+  .stat-box .number { font-size: 1.8rem; font-weight: 700; color: var(--puce-blue); }
+  .stat-box .label { font-size: 0.85rem; color: var(--muted); }
+
+  .leaderboard {
+    margin-top: 24px;
+    background: white;
+    padding: 16px;
+    border-radius: 10px;
+  }
+  .leaderboard table { width: 100%; border-collapse: collapse; }
+  .leaderboard th, .leaderboard td { padding: 8px; text-align: left; border-bottom: 1px solid #eee; font-size: 0.9rem; }
+  .leaderboard th { background: var(--puce-blue); color: white; }
+  .leaderboard tr:nth-child(2) td { background: #fff8e1; font-weight: 600; }
+
+  .name-input {
+    padding: 10px 14px;
+    border: 2px solid #c5d0dc;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    width: 250px;
+    margin-right: 8px;
+  }
+
+  .feedback-toast {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background: var(--success);
+    color: white;
+    padding: 14px 22px;
+    border-radius: 10px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+    transform: translateX(120%);
+    transition: transform 0.3s;
+    z-index: 100;
+    max-width: 320px;
+  }
+  .feedback-toast.error { background: var(--danger); }
+  .feedback-toast.show { transform: translateX(0); }
+
+  .legend-mini {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    font-size: 0.78rem;
+    color: var(--muted);
+    margin-top: 8px;
+  }
+  .legend-mini span { padding: 2px 8px; background: #f4f7fb; border-radius: 4px; }
+
+  footer {
+    text-align: center;
+    padding: 16px;
+    background: var(--puce-blue);
+    color: white;
+    font-size: 0.85rem;
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <h1>🔍 Escape Room CIF Clínico — La Historia Perdida</h1>
+    <div class="subtitle">Fundamentos de Fisioterapia y Razonamiento Clínico · Carrera de Fisioterapia · PUCE</div>
+  </header>
+
+  <div class="hud">
+    <div class="hud-item">
+      <span class="label">Equipo:</span>
+      <span id="teamName">—</span>
+    </div>
+    <div class="hud-item">
+      <span class="label">Caso:</span>
+      <span id="currentCaseName">—</span>
+    </div>
+    <div class="hud-item">
+      <span class="label">Nivel:</span>
+      <span id="levelBadge" class="badge badge-bronze">—</span>
+    </div>
+    <div class="hud-item">
+      <span class="label">⏱ Tiempo:</span>
+      <span id="timer">00:00</span>
+    </div>
+    <div class="hud-item">
+      <span class="label">⭐ Puntos:</span>
+      <span id="score">0</span>
+    </div>
+    <div class="hud-item">
+      <span class="label">❤️ Vidas:</span>
+      <span id="lives">3</span>
+    </div>
+  </div>
+
+  <main>
+    <!-- PANTALLA 1: BIENVENIDA -->
+    <section class="screen active" id="screen-welcome">
+      <h2>🚨 Misión: Recuperar la historia clínica</h2>
+      <p><strong>Detectives clínicos,</strong> el sistema del hospital ha colapsado. Cuatro historias clínicas se han perdido y solo el equipo que clasifique correctamente todos los datos según la <strong>Clasificación Internacional del Funcionamiento, de la Discapacidad y de la Salud (CIF)</strong> podrá recuperarlas. Cada componente de la CIF es un candado, y solo abriendo todos los candados podrán salir de la sala.</p>
+
+      <h3>📋 Antes de empezar</h3>
+      <p>Ingresen el nombre del equipo (Grupo 1, 2, 3 o 4) para registrar su puntaje en la tabla de clasificación.</p>
+      <input type="text" id="teamInput" class="name-input" placeholder="Nombre del equipo" maxlength="30">
+      <button class="btn btn-gold" onclick="saveTeam()">Comenzar misión 🚀</button>
+
+      <div class="ai-tutor" style="margin-top:24px;">
+        <div class="ai-icon">🤖</div>
+        <div class="ai-text">
+          <strong>Dra. CIF (asistente IA)</strong>
+          ¡Hola, equipo! Soy su tutora virtual. Les acompañaré durante toda la misión. Si se equivocan, les daré pistas conceptuales. Pero recuerden: cada error les cuesta una vida. ¡Razonen como fisioterapeutas, no como adivinos!
+        </div>
+      </div>
+    </section>
+
+    <!-- PANTALLA 2: SELECCIÓN DE CASO -->
+    <section class="screen" id="screen-cases">
+      <h2>🎯 Seleccionen su caso clínico asignado</h2>
+      <p>Cada grupo tiene un caso. Hagan clic en el correspondiente para entrar a la sala.</p>
+      <div class="case-grid" id="caseGrid"></div>
+    </section>
+
+    <!-- PANTALLA 3: SELECCIÓN DE NIVEL -->
+    <section class="screen" id="screen-level">
+      <h2>⚙️ Elijan el nivel de dificultad</h2>
+      <p id="levelIntro"></p>
+      <div class="level-selector">
+        <div class="level-btn bronze" onclick="selectLevel('bronze')">
+          <h4>🥉 Bronce</h4>
+          <div class="desc">Síntomas evidentes · 8 tarjetas · 6 minutos · Pistas IA libres</div>
+        </div>
+        <div class="level-btn silver" onclick="selectLevel('silver')">
+          <h4>🥈 Plata</h4>
+          <div class="desc">Análisis intermedio · 12 tarjetas · 5 minutos · 2 pistas IA</div>
+        </div>
+        <div class="level-btn gold" onclick="selectLevel('gold')">
+          <h4>🥇 Oro</h4>
+          <div class="desc">Razonamiento biopsicosocial · 16 tarjetas · 4 minutos · 1 pista IA</div>
+        </div>
+      </div>
+      <button class="btn" onclick="goBack('cases')">← Volver</button>
+      <button class="btn btn-gold" id="startGameBtn" onclick="startGame()" disabled>Entrar a la sala 🔓</button>
+    </section>
+
+    <!-- PANTALLA 4: JUEGO -->
+    <section class="screen" id="screen-game">
+      <h2 id="gameTitle">Sala clínica</h2>
+      <div id="caseNarrative" class="panel" style="margin-bottom:16px;"></div>
+
+      <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+      <div class="legend-mini">
+        <span>Aciertan: +10 pts</span>
+        <span>Error: −1 vida</span>
+        <span>Pista IA: −5 pts</span>
+        <span>Tiempo restante: bonus final</span>
+      </div>
+
+      <div class="game-board">
+        <div class="panel">
+          <div class="panel-title">
+            🃏 Pistas clínicas (arrastren a la zona correcta)
+            <button class="btn btn-secondary" style="padding:4px 10px;font-size:0.8rem;" onclick="askAITutor()">🤖 Pedir pista IA</button>
+          </div>
+          <div class="clue-pool" id="cluePool"></div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-title">🎯 Componentes CIF (suelten aquí)</div>
+          <div class="zones" id="zones">
+            <div class="zone" data-zone="funciones">
+              <div class="zone-header"><span class="zone-icon">🧠</span>Funciones corporales</div>
+              <div class="zone-cards"></div>
+            </div>
+            <div class="zone" data-zone="estructuras">
+              <div class="zone-header"><span class="zone-icon">🦴</span>Estructuras corporales</div>
+              <div class="zone-cards"></div>
+            </div>
+            <div class="zone" data-zone="actividades">
+              <div class="zone-header"><span class="zone-icon">🚶</span>Actividades</div>
+              <div class="zone-cards"></div>
+            </div>
+            <div class="zone" data-zone="participacion">
+              <div class="zone-header"><span class="zone-icon">👥</span>Participación</div>
+              <div class="zone-cards"></div>
+            </div>
+            <div class="zone" data-zone="amb_facilitador">
+              <div class="zone-header"><span class="zone-icon">✅</span>F. ambiental (+)</div>
+              <div class="zone-cards"></div>
+            </div>
+            <div class="zone" data-zone="amb_barrera">
+              <div class="zone-header"><span class="zone-icon">🚧</span>F. ambiental (−)</div>
+              <div class="zone-cards"></div>
+            </div>
+            <div class="zone" data-zone="pers_positivo">
+              <div class="zone-header"><span class="zone-icon">💪</span>F. personal (+)</div>
+              <div class="zone-cards"></div>
+            </div>
+            <div class="zone" data-zone="pers_negativo">
+              <div class="zone-header"><span class="zone-icon">⚠️</span>F. personal (−)</div>
+              <div class="zone-cards"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="ai-tutor" id="aiTutorBox" style="display:none;">
+        <div class="ai-icon">🤖</div>
+        <div class="ai-text" id="aiTutorText"></div>
+      </div>
+    </section>
+
+    <!-- PANTALLA 5: VICTORIA -->
+    <section class="screen" id="screen-victory">
+      <div class="victory-screen">
+        <div class="trophy" id="trophyIcon">🏆</div>
+        <h2 id="victoryTitle">¡Sala superada!</h2>
+        <p id="victorySummary"></p>
+        <div class="stats-grid">
+          <div class="stat-box"><div class="number" id="finalScore">0</div><div class="label">Puntos totales</div></div>
+          <div class="stat-box"><div class="number" id="finalTime">00:00</div><div class="label">Tiempo</div></div>
+          <div class="stat-box"><div class="number" id="finalLives">3</div><div class="label">Vidas restantes</div></div>
+        </div>
+        <div class="leaderboard">
+          <h3>🏅 Tabla de clasificación (todos los grupos)</h3>
+          <table id="leaderTable"><thead><tr><th>#</th><th>Equipo</th><th>Caso</th><th>Nivel</th><th>Puntos</th><th>Tiempo</th></tr></thead><tbody></tbody></table>
+        </div>
+        <div style="margin-top:20px;">
+          <button class="btn" onclick="resetToCases()">🔁 Otro caso</button>
+          <button class="btn btn-gold" onclick="window.print()">🖨️ Imprimir resultado</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- PANTALLA 6: GAME OVER -->
+    <section class="screen" id="screen-gameover">
+      <div class="victory-screen">
+        <div class="trophy">💔</div>
+        <h2>Misión fallida</h2>
+        <p>Se agotaron las vidas o el tiempo. Pero no se desanimen: el razonamiento clínico se construye con la práctica. Revisen el caso con el docente y vuelvan a intentarlo.</p>
+        <button class="btn btn-gold" onclick="resetToCases()">🔁 Reintentar</button>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    Diseñado por Ft. Susana Argüello Pazmiño · Carrera de Fisioterapia · PUCE · Maestría en IA aplicada a la Educación
+  </footer>
+</div>
+
+<div class="feedback-toast" id="toast"></div>
+
+<script>
+// ============= DATOS DE CASOS Y CIF =============
+const CASES = {
+  "grupo1": {
+    name: "Grupo 1 — Esguince de tobillo",
+    title: "🏀 Hombre de 28 años · Esguince de tobillo grado 2",
+    narrative: "Hombre de 28 años con antecedentes de depresión y ataques de ansiedad acude a consulta por «torcedura de tobillo derecho» de hace 2 semanas, jugando básquet. <strong>Diagnóstico médico (CIE-10): S93.4 Esguince de tobillo grado 2</strong>. Refiere dolor, edema persistente y temor a volver a la cancha.",
+    clues: [
+      { text: "Dolor 6/10 en cara lateral del tobillo derecho", zone: "funciones" },
+      { text: "Edema en maléolo peroneo", zone: "funciones" },
+      { text: "Disminución de fuerza de eversores", zone: "funciones" },
+      { text: "Limitación de la dorsiflexión", zone: "funciones" },
+      { text: "Lesión del ligamento peroneo astragalino anterior", zone: "estructuras" },
+      { text: "Inflamación del retináculo extensor", zone: "estructuras" },
+      { text: "Equimosis en tejido blando peri-maleolar", zone: "estructuras" },
+      { text: "Dificultad para subir gradas sin apoyo", zone: "actividades" },
+      { text: "No puede correr más de 5 minutos", zone: "actividades" },
+      { text: "No puede saltar para encestar", zone: "actividades" },
+      { text: "Suspendió la práctica con su equipo de básquet", zone: "participacion" },
+      { text: "No asiste a reuniones sociales por temor a recaer", zone: "participacion" },
+      { text: "Cuenta con seguro estudiantil que cubre fisioterapia", zone: "amb_facilitador" },
+      { text: "Compañeros de equipo lo apoyan en la rehabilitación", zone: "amb_facilitador" },
+      { text: "Vive en un cuarto piso sin ascensor", zone: "amb_barrera" },
+      { text: "Joven, motivado a regresar al deporte", zone: "pers_positivo" },
+      { text: "Buena adherencia al tratamiento previo", zone: "pers_positivo" },
+      { text: "Cuadro previo de depresión y ansiedad", zone: "pers_negativo" },
+      { text: "Kinesiofobia ante el retorno deportivo", zone: "pers_negativo" }
+    ]
+  },
+  "grupo2": {
+    name: "Grupo 2 — Lumbociatalgia",
+    title: "💼 Mujer de 42 años · Lumbociatalgia derecha",
+    narrative: "Mujer de 42 años, divorciada, con sobrepeso (IMC 31). Hace 4 meses presenta dolor irradiado al nervio ciático derecho, de inicio muy fuerte; actualmente persiste el dolor lumbar más constante. <strong>Diagnóstico médico (CIE-10): M54.4 Lumbociatalgia</strong>. Trabaja como cajera de supermercado.",
+    clues: [
+      { text: "Dolor lumbar 5/10 constante", zone: "funciones" },
+      { text: "Parestesias en cara posterior del muslo derecho", zone: "funciones" },
+      { text: "Disminución del reflejo aquíleo derecho", zone: "funciones" },
+      { text: "Debilidad de glúteo medio (3/5)", zone: "funciones" },
+      { text: "Protrusión discal L4-L5 derecha", zone: "estructuras" },
+      { text: "Hipertonía de paravertebrales lumbares", zone: "estructuras" },
+      { text: "Pelvis con anteversión aumentada", zone: "estructuras" },
+      { text: "Dificultad para permanecer de pie >30 minutos", zone: "actividades" },
+      { text: "No puede agacharse a recoger objetos", zone: "actividades" },
+      { text: "Limitación al subir al transporte público", zone: "actividades" },
+      { text: "Bajó su rendimiento laboral en la caja", zone: "participacion" },
+      { text: "Dejó de asistir a clases de baile recreativo", zone: "participacion" },
+      { text: "Su madre le ayuda con tareas domésticas", zone: "amb_facilitador" },
+      { text: "Acceso a fisioterapia por seguro IESS", zone: "amb_facilitador" },
+      { text: "Trabajo demanda bipedestación prolongada sin pausas", zone: "amb_barrera" },
+      { text: "Vive en una casa con muchas escaleras", zone: "amb_barrera" },
+      { text: "Comprometida con cambios de hábitos", zone: "pers_positivo" },
+      { text: "Sobrepeso (IMC 31)", zone: "pers_negativo" },
+      { text: "Estrés emocional post-divorcio", zone: "pers_negativo" }
+    ]
+  },
+  "grupo3": {
+    name: "Grupo 3 — Asma pediátrica",
+    title: "👦 Niño de 8 años · Asma bronquial",
+    narrative: "Niño de 8 años con tos y dificultad respiratoria, sobre todo en la mañana y al iniciar educación física. <strong>Diagnóstico médico (CIE-10): J45 Asma</strong>. Cursa tercero de básica. Vive con sus padres y un perro en casa con piso de moqueta.",
+    clues: [
+      { text: "Sibilancias espiratorias bilaterales", zone: "funciones" },
+      { text: "Tos seca matutina y al esfuerzo", zone: "funciones" },
+      { text: "Disminución del flujo espiratorio máximo", zone: "funciones" },
+      { text: "Disnea ante esfuerzo moderado", zone: "funciones" },
+      { text: "Hiperreactividad bronquial", zone: "estructuras" },
+      { text: "Inflamación crónica de la mucosa bronquial", zone: "estructuras" },
+      { text: "Tórax con leve hiperinsuflación", zone: "estructuras" },
+      { text: "No puede correr en clase de educación física", zone: "actividades" },
+      { text: "Limitación para subir escaleras del colegio", zone: "actividades" },
+      { text: "Dificultad para hablar sin pausas durante crisis", zone: "actividades" },
+      { text: "Excluido de los juegos de fútbol del recreo", zone: "participacion" },
+      { text: "Padres lo retiran de las salidas con compañeros", zone: "participacion" },
+      { text: "Inhalador de rescate disponible en mochila", zone: "amb_facilitador" },
+      { text: "Maestra capacitada en manejo de crisis asmáticas", zone: "amb_facilitador" },
+      { text: "Casa con piso de moqueta (alérgenos)", zone: "amb_barrera" },
+      { text: "Convivencia con perro doméstico", zone: "amb_barrera" },
+      { text: "Niño curioso y participativo en clase", zone: "pers_positivo" },
+      { text: "Antecedente familiar de atopia", zone: "pers_negativo" },
+      { text: "Sobrepeso infantil leve", zone: "pers_negativo" }
+    ]
+  },
+  "grupo4": {
+    name: "Grupo 4 — ACV con hemiplejía",
+    title: "👴 Adulto de 82 años · ACV con hemiplejía derecha",
+    narrative: "Adulto de 82 años, viudo, vive con su hija. Hace 2 meses sufrió accidente cerebrovascular isquémico que dejó como secuela hemiplejía derecha. <strong>Diagnóstico médico (CIE-10): I63.9 Infarto cerebral · G81.9 Hemiplejía</strong>. Recibe atención domiciliaria.",
+    clues: [
+      { text: "Hemiplejía derecha (fuerza 1/5 en MSD)", zone: "funciones" },
+      { text: "Hipertonía espástica en miembros derechos", zone: "funciones" },
+      { text: "Afasia de expresión leve", zone: "funciones" },
+      { text: "Hemianopsia homónima derecha", zone: "funciones" },
+      { text: "Lesión isquémica en arteria cerebral media izquierda", zone: "estructuras" },
+      { text: "Atrofia por desuso en hemicuerpo derecho", zone: "estructuras" },
+      { text: "Subluxación de hombro derecho", zone: "estructuras" },
+      { text: "No puede caminar sin asistencia", zone: "actividades" },
+      { text: "Dificultad para vestirse de manera autónoma", zone: "actividades" },
+      { text: "No puede comer con la mano derecha", zone: "actividades" },
+      { text: "Suspendió las reuniones del club de adultos mayores", zone: "participacion" },
+      { text: "Ya no asiste a la iglesia los domingos", zone: "participacion" },
+      { text: "Hija comprometida con el cuidado y rehabilitación", zone: "amb_facilitador" },
+      { text: "Domicilio adaptado con barras de apoyo", zone: "amb_facilitador" },
+      { text: "Acceso a programa de rehabilitación domiciliaria", zone: "amb_facilitador" },
+      { text: "Vivienda en zona rural con difícil acceso", zone: "amb_barrera" },
+      { text: "Conserva la memoria y funciones cognitivas", zone: "pers_positivo" },
+      { text: "Edad avanzada (82 años)", zone: "pers_negativo" },
+      { text: "Duelo no resuelto por viudez reciente", zone: "pers_negativo" }
+    ]
+  }
+};
+
+const ZONE_NAMES = {
+  funciones: "Funciones corporales",
+  estructuras: "Estructuras corporales",
+  actividades: "Actividades",
+  participacion: "Participación",
+  amb_facilitador: "Factor ambiental facilitador",
+  amb_barrera: "Factor ambiental barrera",
+  pers_positivo: "Factor personal positivo",
+  pers_negativo: "Factor personal negativo"
+};
+
+// Pistas pedagógicas que da la "IA tutora" cuando el estudiante se equivoca
+const AI_HINTS = {
+  funciones: "🧠 Recuerden: las funciones corporales son las funciones FISIOLÓGICAS de los sistemas (dolor, fuerza, ROM, equilibrio…). Son procesos, no estructuras anatómicas (OMS, 2001).",
+  estructuras: "🦴 Las estructuras corporales son las PARTES ANATÓMICAS dañadas: ligamentos, músculos, nervios, órganos. ¿Qué tejido o región está lesionada?",
+  actividades: "🚶 Las actividades son TAREAS que realiza la persona: caminar, vestirse, subir gradas. Pregunten: ¿qué dejó de poder HACER?",
+  participacion: "👥 Participación es involucrarse en SITUACIONES VITALES: trabajo, deporte, vida social, comunidad. ¿Qué rol social se ha visto afectado?",
+  amb_facilitador: "✅ Factor ambiental positivo: algo del ENTORNO que ayuda (familia, recursos, tecnología accesible).",
+  amb_barrera: "🚧 Factor ambiental negativo: algo del ENTORNO que dificulta (escaleras, contaminación, falta de servicios).",
+  pers_positivo: "💪 Factor personal positivo: características INDIVIDUALES que favorecen (motivación, edad joven, hábitos saludables).",
+  pers_negativo: "⚠️ Factor personal negativo: características INDIVIDUALES que dificultan (comorbilidades, miedo, hábitos perjudiciales)."
+};
+
+// ============= ESTADO DEL JUEGO =============
+let state = {
+  team: "",
+  caseId: null,
+  level: null,
+  score: 0,
+  lives: 3,
+  startTime: null,
+  timerInterval: null,
+  totalClues: 0,
+  placedClues: 0,
+  hintsUsed: 0,
+  hintsAllowed: 999
+};
+
+// ============= NAVEGACIÓN =============
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('screen-' + id).classList.add('active');
+}
+
+function saveTeam() {
+  const name = document.getElementById('teamInput').value.trim();
+  if (!name) { showToast("Ingresen el nombre del equipo", true); return; }
+  state.team = name;
+  document.getElementById('teamName').textContent = name;
+  renderCases();
+  showScreen('cases');
+}
+
+function renderCases() {
+  const grid = document.getElementById('caseGrid');
+  grid.innerHTML = '';
+  Object.entries(CASES).forEach(([id, c]) => {
+    const card = document.createElement('div');
+    card.className = 'case-card';
+    card.onclick = () => selectCase(id);
+    card.innerHTML = `
+      <h3>${c.title}</h3>
+      <div class="meta">${c.name}</div>
+      <p>${c.narrative.substring(0, 140)}...</p>
+    `;
+    grid.appendChild(card);
+  });
+}
+
+function selectCase(id) {
+  state.caseId = id;
+  document.getElementById('currentCaseName').textContent = CASES[id].name;
+  document.getElementById('levelIntro').innerHTML = `<strong>Caso seleccionado:</strong> ${CASES[id].title}`;
+  document.querySelectorAll('.level-btn').forEach(b => b.classList.remove('selected'));
+  document.getElementById('startGameBtn').disabled = true;
+  state.level = null;
+  showScreen('level');
+}
+
+function selectLevel(level) {
+  state.level = level;
+  document.querySelectorAll('.level-btn').forEach(b => b.classList.remove('selected'));
+  document.querySelector('.level-btn.' + level).classList.add('selected');
+  document.getElementById('startGameBtn').disabled = false;
+
+  const badge = document.getElementById('levelBadge');
+  badge.className = 'badge badge-' + level;
+  badge.textContent = level === 'bronze' ? '🥉 Bronce' : level === 'silver' ? '🥈 Plata' : '🥇 Oro';
+}
+
+function goBack(target) { showScreen(target); }
+
+// ============= INICIO DEL JUEGO =============
+function startGame() {
+  const caseData = CASES[state.caseId];
+  let nClues = state.level === 'bronze' ? 8 : state.level === 'silver' ? 12 : 16;
+  nClues = Math.min(nClues, caseData.clues.length);
+  state.hintsAllowed = state.level === 'bronze' ? 999 : state.level === 'silver' ? 2 : 1;
+
+  // Mezclar y tomar n pistas
+  const shuffled = [...caseData.clues].sort(() => Math.random() - 0.5).slice(0, nClues);
+  state.totalClues = shuffled.length;
+  state.placedClues = 0;
+  state.score = 0;
+  state.lives = 3;
+  state.hintsUsed = 0;
+  updateHUD();
+
+  // Render narrativa
+  document.getElementById('gameTitle').textContent = caseData.title;
+  document.getElementById('caseNarrative').innerHTML = `<strong>📜 Historia clínica:</strong><br>${caseData.narrative}`;
+
+  // Render clues
+  const pool = document.getElementById('cluePool');
+  pool.innerHTML = '';
+  shuffled.forEach((c, i) => {
+    const el = document.createElement('div');
+    el.className = 'clue';
+    el.draggable = true;
+    el.textContent = c.text;
+    el.dataset.zone = c.zone;
+    el.dataset.id = 'clue_' + i;
+    setupDrag(el);
+    pool.appendChild(el);
+  });
+
+  // Limpiar zonas
+  document.querySelectorAll('.zone .zone-cards').forEach(z => z.innerHTML = '');
+
+  // Iniciar timer
+  const timeLimit = state.level === 'bronze' ? 360 : state.level === 'silver' ? 300 : 240;
+  state.startTime = Date.now();
+  state.timeLimit = timeLimit;
+  if (state.timerInterval) clearInterval(state.timerInterval);
+  state.timerInterval = setInterval(updateTimer, 500);
+
+  setupZoneListeners();
+  document.getElementById('progressFill').style.width = '0%';
+  showScreen('game');
+}
+
+function updateTimer() {
+  const elapsed = Math.floor((Date.now() - state.startTime) / 1000);
+  const remaining = state.timeLimit - elapsed;
+  if (remaining <= 0) {
+    clearInterval(state.timerInterval);
+    gameOver("⏱️ Se agotó el tiempo");
+    return;
+  }
+  const m = Math.floor(remaining / 60).toString().padStart(2, '0');
+  const s = (remaining % 60).toString().padStart(2, '0');
+  document.getElementById('timer').textContent = `${m}:${s}`;
+}
+
+function updateHUD() {
+  document.getElementById('score').textContent = state.score;
+  document.getElementById('lives').textContent = '❤️'.repeat(Math.max(0, state.lives));
+}
+
+// ============= DRAG & DROP =============
+let draggedEl = null;
+function setupDrag(el) {
+  el.addEventListener('dragstart', e => {
+    draggedEl = el;
+    el.classList.add('dragging');
+    e.dataTransfer.effectAllowed = 'move';
+  });
+  el.addEventListener('dragend', () => el.classList.remove('dragging'));
+
+  // Soporte táctil simple
+  el.addEventListener('touchstart', e => { draggedEl = el; el.classList.add('dragging'); }, {passive: true});
+}
+
+function setupZoneListeners() {
+  document.querySelectorAll('.zone').forEach(zone => {
+    zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag-over'); });
+    zone.addEventListener('dragleave', () => zone.classList.remove('drag-over'));
+    zone.addEventListener('drop', e => {
+      e.preventDefault();
+      zone.classList.remove('drag-over');
+      if (!draggedEl) return;
+      handleDrop(draggedEl, zone);
+    });
+    // Tap to drop on touch
+    zone.addEventListener('touchend', e => {
+      if (draggedEl) { handleDrop(draggedEl, zone); draggedEl = null; }
+    });
+  });
+}
+
+function handleDrop(clue, zone) {
+  const correctZone = clue.dataset.zone;
+  const droppedZone = zone.dataset.zone;
+  if (correctZone === droppedZone) {
+    // Acierto
+    state.score += 10;
+    state.placedClues++;
+    const card = document.createElement('div');
+    card.className = 'zone-card';
+    card.textContent = clue.textContent;
+    zone.querySelector('.zone-cards').appendChild(card);
+    clue.classList.add('placed');
+    showToast(`✅ ¡Correcto! +10 pts`, false);
+    updateHUD();
+    updateProgress();
+    if (state.placedClues === state.totalClues) victory();
+  } else {
+    // Error
+    state.lives--;
+    showToast(`❌ Pertenece a "${ZONE_NAMES[correctZone]}". −1 vida`, true);
+    showAITutorHint(correctZone);
+    updateHUD();
+    if (state.lives <= 0) gameOver("💔 Se agotaron las vidas");
+  }
+}
+
+function updateProgress() {
+  const pct = (state.placedClues / state.totalClues) * 100;
+  document.getElementById('progressFill').style.width = pct + '%';
+}
+
+function showAITutorHint(zone) {
+  const box = document.getElementById('aiTutorBox');
+  document.getElementById('aiTutorText').innerHTML = `<strong>Dra. CIF te orienta:</strong> ${AI_HINTS[zone]}`;
+  box.style.display = 'flex';
+  setTimeout(() => box.style.display = 'none', 7000);
+}
+
+function askAITutor() {
+  if (state.hintsUsed >= state.hintsAllowed) {
+    showToast("⚠️ Ya usaron todas las pistas IA permitidas en este nivel", true);
+    return;
+  }
+  // Encontrar una pista no colocada y dar pista de su zona
+  const remaining = document.querySelectorAll('.clue:not(.placed)');
+  if (remaining.length === 0) return;
+  const pick = remaining[Math.floor(Math.random() * remaining.length)];
+  state.hintsUsed++;
+  state.score = Math.max(0, state.score - 5);
+  updateHUD();
+  const box = document.getElementById('aiTutorBox');
+  document.getElementById('aiTutorText').innerHTML = `<strong>Dra. CIF (pista −5 pts):</strong> "${pick.textContent}" → corresponde a <em>${ZONE_NAMES[pick.dataset.zone]}</em>. ${AI_HINTS[pick.dataset.zone]}`;
+  box.style.display = 'flex';
+}
+
+// ============= TOAST =============
+let toastTimer = null;
+function showToast(msg, isError) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'feedback-toast' + (isError ? ' error' : '') + ' show';
+  if (toastTimer) clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2800);
+}
+
+// ============= FIN DEL JUEGO =============
+function victory() {
+  clearInterval(state.timerInterval);
+  const elapsed = Math.floor((Date.now() - state.startTime) / 1000);
+  const timeBonus = Math.max(0, (state.timeLimit - elapsed)) * 2;
+  state.score += timeBonus;
+  state.score += state.lives * 15;
+
+  document.getElementById('finalScore').textContent = state.score;
+  const m = Math.floor(elapsed / 60).toString().padStart(2, '0');
+  const s = (elapsed % 60).toString().padStart(2, '0');
+  document.getElementById('finalTime').textContent = `${m}:${s}`;
+  document.getElementById('finalLives').textContent = '❤️'.repeat(state.lives);
+
+  const trophy = state.lives === 3 ? '🏆' : state.lives === 2 ? '🥈' : '🥉';
+  document.getElementById('trophyIcon').textContent = trophy;
+  document.getElementById('victoryTitle').textContent = '¡Sala superada!';
+  document.getElementById('victorySummary').innerHTML = `Equipo <strong>${state.team}</strong> resolvió el caso "${CASES[state.caseId].name}" en nivel <strong>${state.level.toUpperCase()}</strong>. Bonus de tiempo: +${timeBonus} pts · Bonus por vidas: +${state.lives * 15} pts.`;
+
+  saveToLeaderboard();
+  renderLeaderboard();
+  showScreen('victory');
+}
+
+function gameOver(msg) {
+  clearInterval(state.timerInterval);
+  showScreen('gameover');
+  document.querySelector('#screen-gameover p').textContent = msg + ". El razonamiento clínico se construye con la práctica. Revisen el caso con el docente y vuelvan a intentarlo.";
+}
+
+function resetToCases() {
+  showScreen('cases');
+}
+
+// ============= LEADERBOARD =============
+async function saveToLeaderboard() {
+  try {
+    const entry = {
+      team: state.team,
+      caseId: state.caseId,
+      caseName: CASES[state.caseId].name,
+      level: state.level,
+      score: state.score,
+      time: Math.floor((Date.now() - state.startTime) / 1000),
+      timestamp: Date.now()
+    };
+    const key = 'leaderboard:' + entry.timestamp + '_' + state.team;
+    if (window.storage && window.storage.set) {
+      await window.storage.set(key, JSON.stringify(entry), true);
+    } else {
+      // Fallback: localStorage si no estamos en Claude
+      const list = JSON.parse(localStorage.getItem('cif_leaderboard') || '[]');
+      list.push(entry);
+      localStorage.setItem('cif_leaderboard', JSON.stringify(list));
+    }
+  } catch (e) { console.warn('No se pudo guardar', e); }
+}
+
+async function renderLeaderboard() {
+  let entries = [];
+  try {
+    if (window.storage && window.storage.list) {
+      const r = await window.storage.list('leaderboard:', true);
+      if (r && r.keys) {
+        for (const k of r.keys) {
+          try {
+            const v = await window.storage.get(k, true);
+            if (v && v.value) entries.push(JSON.parse(v.value));
+          } catch (e) {}
+        }
+      }
+    } else {
+      entries = JSON.parse(localStorage.getItem('cif_leaderboard') || '[]');
+    }
+  } catch (e) {}
+
+  entries.sort((a,b) => b.score - a.score);
+  const tbody = document.querySelector('#leaderTable tbody');
+  tbody.innerHTML = '';
+  entries.slice(0, 10).forEach((e, i) => {
+    const tr = document.createElement('tr');
+    const m = Math.floor(e.time / 60).toString().padStart(2, '0');
+    const s = (e.time % 60).toString().padStart(2, '0');
+    const lvl = e.level === 'bronze' ? '🥉' : e.level === 'silver' ? '🥈' : '🥇';
+    tr.innerHTML = `<td>${i+1}</td><td>${e.team}</td><td>${e.caseName}</td><td>${lvl}</td><td>${e.score}</td><td>${m}:${s}</td>`;
+    tbody.appendChild(tr);
+  });
+  if (entries.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#888;">Aún no hay registros. ¡Sean los primeros!</td></tr>';
+  }
+}
+
+// Inicial
+showScreen('welcome');
+</script>
+</body>
+</html>
